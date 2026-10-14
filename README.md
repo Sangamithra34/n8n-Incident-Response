@@ -56,6 +56,7 @@ The execution ID comes from $execution.id, and the time is converted to Asia/Kol
 
 **DATA TABLES:**
 tickets: ticket_id, description, affected_asset, category, severity, suggested_owner, status, created_at, closed_at, chat_id
+
 audit_log: ticket_id, action, event_ts, input_hash, output_hash, prev_hash, row_hash
 
 
