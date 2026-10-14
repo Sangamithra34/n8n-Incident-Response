@@ -1,0 +1,1692 @@
+{
+  "name": "NGP-049 Incident Ticket Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "c61c541d-08a6-4b61-978d-4f56172ba0fc",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -3040,
+        192
+      ],
+      "webhookId": "0fd70d23-5677-4385-9a61-55b535deb7a6",
+      "credentials": {
+        "telegramApi": {
+          "id": "x5drj3yBOaYFnyrG",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "1e9c5391-10ae-4f2e-8b2c-c66f6535a0a2",
+                    "leftValue": "={{ $json.message.text || '' }}",
+                    "rightValue": "/incident",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "86ea7df3-d69c-46ff-9db5-a31a07bddb77",
+                    "leftValue": "={{ $json.message.text || '' }}",
+                    "rightValue": "/close",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "b3c8c077-543b-4305-bf4d-65fdc60303f8",
+      "name": "Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -3168,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b169460d-02dd-4d11-a983-b7fb21c7ed62",
+              "name": "description",
+              "value": "={{ $json.message.text.replace('/incident', '').trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "a1f0c5a2-3d6e-4b1a-9c11-0a7d2e5b9f10",
+              "name": "chat_id",
+              "value": "={{ $json.message.chat.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c4e63486-c667-42da-b7d3-9573cc49489c",
+      "name": "Edit Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -2400,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c-empty",
+              "leftValue": "={{ ($json.description || \"\").length === 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "0a904e7b-a27b-44c2-ae7f-25e9ace37fc6",
+      "name": "Description Empty?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -2176,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "=🟣 NGP-049 | exec #{{ $execution.id }} | {{ $now.setZone(\"Asia/Kolkata\").toFormat(\"dd LLL yyyy HH:mm\") }} IST | ERROR | Usage: /incident describe the incident",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "7edf5f85-7ae4-485f-80b7-5ce60ed2e2d6",
+      "name": "Reply Incident Usage",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1888,
+        -192
+      ],
+      "webhookId": "1e3fdf76-3d5c-4cb6-99ed-39f0a0fadb2a",
+      "credentials": {
+        "telegramApi": {
+          "id": "x5drj3yBOaYFnyrG",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Triage this security incident: {{ $json.description }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an incident response analyst. Extract the affected asset, category, severity (red = critical, orange = moderate, green = low) and suggested owner. Return only JSON."
+        }
+      },
+      "id": "f8a43061-abae-44b9-84b2-04093787ef88",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -1952,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "5ab1cdb8-e9c6-40d6-b99a-dee3366ac95b",
+      "name": "Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        -1984,
+        336
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": null,
+          "name": "Gateway credits",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\"type\":\"object\",\"properties\":{\"affected_asset\":{\"type\":\"string\"},\"category\":{\"type\":\"string\"},\"severity\":{\"type\":\"string\",\"enum\":[\"red\",\"orange\",\"green\"]},\"suggested_owner\":{\"type\":\"string\"},\"summary\":{\"type\":\"string\",\"description\":\"one-line summary\"}},\"required\":[\"affected_asset\",\"category\",\"severity\",\"suggested_owner\",\"summary\"]}"
+      },
+      "id": "d6e9de0c-ada3-4dca-bbbe-d089c524bc32",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -1808,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "SA9tQWN2FR1FYbJS",
+          "cachedResultName": "tickets"
+        },
+        "returnAll": true
+      },
+      "id": "5ce4bf3e-31ff-4c13-83dc-49d058193c7d",
+      "name": "Get many rows",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -1600,
+        112
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const n = $('Get many rows').all().filter(i => i.json.ticket_id).length + 1;\nconst out = $('AI Agent').first().json.output;\nconst desc = $('Edit Fields').first().json.description;\nconst chat = $('Edit Fields').first().json.chat_id;\nconst clean = (s) => String(s == null ? '' : s).replace(/[<>&]/g, ' ');\nlet sev = String(out.severity || '').toLowerCase();\nif (!['red', 'orange', 'green'].includes(sev)) sev = 'orange';\nreturn [{ json: {\n  affected_asset: clean(out.affected_asset),\n  category: clean(out.category),\n  suggested_owner: clean(out.suggested_owner),\n  summary: clean(out.summary),\n  severity: sev,\n  description: desc,\n  chat_id: String(chat),\n  ticket_id: 'NGP-049-' + String(n).padStart(3, '0'),\n  status: 'OPEN',\n  created_at_ts: new Date().toISOString(),\n  model_output: JSON.stringify(out)\n}}];"
+      },
+      "id": "23af734c-45b5-43e4-b12b-9d52cb880a2f",
+      "name": "Build Ticket",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1376,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "SA9tQWN2FR1FYbJS",
+          "cachedResultName": "tickets"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ticket_id": "={{ $json.ticket_id }}",
+            "description": "={{ $json.description }}",
+            "affected_asset": "={{ $json.affected_asset }}",
+            "category": "={{ $json.category }}",
+            "severity": "={{ $json.severity }}",
+            "suggested_owner": "={{ $json.suggested_owner }}",
+            "status": "={{ $json.status }}",
+            "created_at_ts": "={{ $json.created_at_ts }}",
+            "chat_id": "={{ $json.chat_id }}"
+          },
+          "schema": [
+            {
+              "id": "ticket_id",
+              "displayName": "ticket_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "affected_asset",
+              "displayName": "affected_asset",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "severity",
+              "displayName": "severity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "suggested_owner",
+              "displayName": "suggested_owner",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at_ts",
+              "displayName": "created_at_ts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "closed_at",
+              "displayName": "closed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5ebcb8ba-7fba-4425-a8f9-f7d9af311f32",
+      "name": "Insert Ticket",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -1152,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ia1",
+              "name": "ticket_id",
+              "value": "={{ $('Build Ticket').item.json.ticket_id }}",
+              "type": "string"
+            },
+            {
+              "id": "ia2",
+              "name": "action",
+              "value": "INCIDENT",
+              "type": "string"
+            },
+            {
+              "id": "ia3",
+              "name": "chat_id",
+              "value": "={{ $('Build Ticket').item.json.chat_id }}",
+              "type": "string"
+            },
+            {
+              "id": "ia4",
+              "name": "input_text",
+              "value": "={{ $('Build Ticket').item.json.description }}",
+              "type": "string"
+            },
+            {
+              "id": "ia5",
+              "name": "output_text",
+              "value": "={{ $('Build Ticket').item.json.model_output }}",
+              "type": "string"
+            },
+            {
+              "id": "ia6",
+              "name": "route",
+              "value": "={{ $('Build Ticket').item.json.severity }}",
+              "type": "string"
+            },
+            {
+              "id": "ia7",
+              "name": "summary",
+              "value": "={{ $('Build Ticket').item.json.summary }}",
+              "type": "string"
+            },
+            {
+              "id": "ia8",
+              "name": "affected_asset",
+              "value": "={{ $('Build Ticket').item.json.affected_asset }}",
+              "type": "string"
+            },
+            {
+              "id": "ia9",
+              "name": "category",
+              "value": "={{ $('Build Ticket').item.json.category }}",
+              "type": "string"
+            },
+            {
+              "id": "ia10",
+              "name": "suggested_owner",
+              "value": "={{ $('Build Ticket').item.json.suggested_owner }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "78d6fe9a-c83c-49d1-b743-0277fa64bef0",
+      "name": "Incident Audit Payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -896,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "value": "={{ $json.input_text }}",
+        "dataPropertyName": "input_hash"
+      },
+      "id": "e90d85b8-31d0-49b0-a071-2fee2e9266db",
+      "name": "Crypto Input Hash",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 2,
+      "position": [
+        -480,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $input.first().json.message.text || '';\nconst m = text.match(/NGP-049-\\d+/i);\nreturn [{ json: { ticket_id: m ? m[0].toUpperCase() : null, chat_id: String($input.first().json.message.chat.id) } }];"
+      },
+      "id": "3232be7d-6000-4d70-94d4-64d2d531b308",
+      "name": "Extract Ticket ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2400,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c-noid",
+              "leftValue": "={{ !$json.ticket_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "3175ed16-3789-4c8c-933a-4d50de669a2a",
+      "name": "Ticket ID Missing?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -2176,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "=🟣 NGP-049 | exec #{{ $execution.id }} | {{ $now.setZone(\"Asia/Kolkata\").toFormat(\"dd LLL yyyy HH:mm\") }} IST | ERROR | Usage: /close NGP-049-001",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "d57e1239-d942-4ad0-ab84-70fdf1ec3f04",
+      "name": "Reply Close Usage",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1952,
+        0
+      ],
+      "webhookId": "30bd1f44-dee1-4d69-84c1-eaad3c7235f6",
+      "credentials": {
+        "telegramApi": {
+          "id": "x5drj3yBOaYFnyrG",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "SA9tQWN2FR1FYbJS",
+          "cachedResultName": "tickets"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "ticket_id",
+              "keyValue": "={{ $('Extract Ticket ID').item.json.ticket_id }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "id": "d5f12cb2-0c76-4201-9f1a-d1ad395d1f46",
+      "name": "Get Ticket Row",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -1952,
+        192
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c-found",
+              "leftValue": "={{ !!$json.ticket_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "aead27e9-35e2-4d2a-a19b-82b1104dc5a4",
+      "name": "Ticket Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1728,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "SA9tQWN2FR1FYbJS",
+          "cachedResultName": "tickets"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "ticket_id",
+              "keyValue": "={{ $('Extract Ticket ID').item.json.ticket_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "CLOSED",
+            "closed_at": "={{ $now.toISO() }}"
+          },
+          "schema": [
+            {
+              "id": "ticket_id",
+              "displayName": "ticket_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "affected_asset",
+              "displayName": "affected_asset",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "severity",
+              "displayName": "severity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "suggested_owner",
+              "displayName": "suggested_owner",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at_ts",
+              "displayName": "created_at_ts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "closed_at",
+              "displayName": "closed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ceb75249-71fc-4bf2-aba8-cbeb03beea0a",
+      "name": "Close Ticket Row",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -1504,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ca1",
+              "name": "ticket_id",
+              "value": "={{ $('Extract Ticket ID').item.json.ticket_id }}",
+              "type": "string"
+            },
+            {
+              "id": "ca2",
+              "name": "action",
+              "value": "CLOSE",
+              "type": "string"
+            },
+            {
+              "id": "ca3",
+              "name": "chat_id",
+              "value": "={{ $('Extract Ticket ID').item.json.chat_id }}",
+              "type": "string"
+            },
+            {
+              "id": "ca4",
+              "name": "input_text",
+              "value": "={{ '/close ' + $('Extract Ticket ID').item.json.ticket_id }}",
+              "type": "string"
+            },
+            {
+              "id": "ca5",
+              "name": "output_text",
+              "value": "={{ JSON.stringify({ ticket_id: $('Extract Ticket ID').item.json.ticket_id, status: 'CLOSED' }) }}",
+              "type": "string"
+            },
+            {
+              "id": "ca6",
+              "name": "route",
+              "value": "closed",
+              "type": "string"
+            },
+            {
+              "id": "ca7",
+              "name": "summary",
+              "value": "={{ 'Ticket ' + $('Extract Ticket ID').item.json.ticket_id + ' closed' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0add91b2-db06-4c2d-b18f-a5e5141008f0",
+      "name": "Close Audit Payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -1280,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Extract Ticket ID').item.json.chat_id }}",
+        "text": "=🟣 NGP-049 | exec #{{ $execution.id }} | {{ $now.setZone(\"Asia/Kolkata\").toFormat(\"dd LLL yyyy HH:mm\") }} IST | ERROR | Ticket {{ $('Extract Ticket ID').item.json.ticket_id }} not found",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "a6e6da3b-c48e-4990-8487-970e3491d8e4",
+      "name": "Reply Not Found",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1504,
+        288
+      ],
+      "webhookId": "870ac708-6bc5-4def-9b5b-24281b444c97",
+      "credentials": {
+        "telegramApi": {
+          "id": "x5drj3yBOaYFnyrG",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=🟣 NGP-049 | exec #{{ $execution.id }} | {{ $now.setZone(\"Asia/Kolkata\").toFormat(\"dd LLL yyyy HH:mm\") }} IST | HELP | Commands: /incident describe the incident, /close NGP-049-001",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "41d02002-6ac3-435b-b3e7-dbc62da48401",
+      "name": "Send Help",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2352,
+        1456
+      ],
+      "webhookId": "a352e5fd-b3b9-4a24-a396-941e2e054151",
+      "credentials": {
+        "telegramApi": {
+          "id": "x5drj3yBOaYFnyrG",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "value": "={{ $json.output_text }}",
+        "dataPropertyName": "output_hash"
+      },
+      "id": "f083ff62-ce06-4fab-98ec-0a9484028110",
+      "name": "Crypto Output Hash",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 2,
+      "position": [
+        -256,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "6DgHp82h4sUc82Xo",
+          "cachedResultName": "audit_log"
+        },
+        "returnAll": true
+      },
+      "id": "64153a4e-2ffc-47ee-a51f-1b1ed50fb041",
+      "name": "Get Audit Log",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -32,
+        560
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json).filter(r => r.row_hash);\nrows.sort((a, b) => Number(a.id) - Number(b.id));\nconst prev = rows.length ? rows[rows.length - 1].row_hash : 'GENESIS';\nreturn [{ json: { ...$('Crypto Output Hash').first().json, prev_hash: prev, event_ts: new Date().toISOString() } }];"
+      },
+      "id": "962f2ef9-8601-4a86-9ee3-f8561b28cd31",
+      "name": "Find Prev Hash",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ch1",
+              "name": "chain_input",
+              "value": "={{ $json.ticket_id + $json.action + $json.input_hash + $json.output_hash + $json.event_ts + $json.prev_hash }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "164fad3a-c1da-4317-b46a-9f7f1d8799df",
+      "name": "Build Chain Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        416,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "value": "={{ $json.chain_input }}",
+        "dataPropertyName": "row_hash"
+      },
+      "id": "d8b290cc-0c7f-41be-a10c-198e3c38dfe5",
+      "name": "Crypto Row Hash",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 2,
+      "position": [
+        640,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "6DgHp82h4sUc82Xo",
+          "cachedResultName": "audit_log"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ticket_id": "={{ $json.ticket_id }}",
+            "action": "={{ $json.action }}",
+            "event_ts": "={{ $json.event_ts }}",
+            "input_hash": "={{ $json.input_hash }}",
+            "output_hash": "={{ $json.output_hash }}",
+            "prev_hash": "={{ $json.prev_hash }}",
+            "row_hash": "={{ $json.row_hash }}"
+          },
+          "schema": [
+            {
+              "id": "ticket_id",
+              "displayName": "ticket_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "event_ts",
+              "displayName": "event_ts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "input_hash",
+              "displayName": "input_hash",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "output_hash",
+              "displayName": "output_hash",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "prev_hash",
+              "displayName": "prev_hash",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_hash",
+              "displayName": "row_hash",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d6708644-f364-4e92-9412-14836dfbf60f",
+      "name": "Insert Audit Row",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        864,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "r-red",
+                    "leftValue": "={{ $('Crypto Row Hash').item.json.route }}",
+                    "rightValue": "red",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "r-orange",
+                    "leftValue": "={{ $('Crypto Row Hash').item.json.route }}",
+                    "rightValue": "orange",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "r-green",
+                    "leftValue": "={{ $('Crypto Row Hash').item.json.route }}",
+                    "rightValue": "green",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "r-closed",
+                    "leftValue": "={{ $('Crypto Row Hash').item.json.route }}",
+                    "rightValue": "closed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e3276983-8653-410f-909f-cfc3aa337f19",
+      "name": "Route By Severity",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1136,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Crypto Row Hash').item.json.chat_id }}",
+        "text": "=🟣 NGP-049 | exec #{{ $execution.id }} | {{ $now.setZone(\"Asia/Kolkata\").toFormat(\"dd LLL yyyy HH:mm\") }} IST | RED | {{ $('Crypto Row Hash').item.json.summary }}\n\n🔴 CRITICAL\nTicket: {{ $('Crypto Row Hash').item.json.ticket_id }}\nAsset: {{ $('Crypto Row Hash').item.json.affected_asset }}\nCategory: {{ $('Crypto Row Hash').item.json.category }}\nSeverity: RED\nOwner: {{ $('Crypto Row Hash').item.json.suggested_owner }}\nStatus: OPEN\n\nEscalate immediately to {{ $('Crypto Row Hash').item.json.suggested_owner }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "e6415437-ac2f-466e-9c72-639d492f0ec1",
+      "name": "Notify Red",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1376,
+        -96
+      ],
+      "webhookId": "0e30c6fb-4547-46d4-836d-b6aac104e415",
+      "credentials": {
+        "telegramApi": {
+          "id": "x5drj3yBOaYFnyrG",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Crypto Row Hash').item.json.chat_id }}",
+        "text": "=🟣 NGP-049 | exec #{{ $execution.id }} | {{ $now.setZone(\"Asia/Kolkata\").toFormat(\"dd LLL yyyy HH:mm\") }} IST | ORANGE | {{ $('Crypto Row Hash').item.json.summary }}\n\n🟠 MODERATE\nTicket: {{ $('Crypto Row Hash').item.json.ticket_id }} | Owner: {{ $('Crypto Row Hash').item.json.suggested_owner }}\nRespond within 4 hours",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "2ed196ce-f594-4d9f-ab0f-46de75b4bb56",
+      "name": "Notify Orange",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1376,
+        96
+      ],
+      "webhookId": "a0bf359d-7865-4c1c-a3a2-8afc2815d7b0",
+      "credentials": {
+        "telegramApi": {
+          "id": "x5drj3yBOaYFnyrG",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Crypto Row Hash').item.json.chat_id }}",
+        "text": "=🟣 NGP-049 | exec #{{ $execution.id }} | {{ $now.setZone(\"Asia/Kolkata\").toFormat(\"dd LLL yyyy HH:mm\") }} IST | GREEN | {{ $('Crypto Row Hash').item.json.summary }}\n\n🟢 LOW - {{ $('Crypto Row Hash').item.json.ticket_id }}: Handle in normal queue",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "ee7469b1-87f1-4195-9244-18912330a828",
+      "name": "Notify Green",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1376,
+        288
+      ],
+      "webhookId": "cbcee085-335b-470f-b0ad-f1f3114e80e5",
+      "credentials": {
+        "telegramApi": {
+          "id": "x5drj3yBOaYFnyrG",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Crypto Row Hash').item.json.chat_id }}",
+        "text": "=🟣 NGP-049 | exec #{{ $execution.id }} | {{ $now.setZone(\"Asia/Kolkata\").toFormat(\"dd LLL yyyy HH:mm\") }} IST | CLOSED | Ticket {{ $('Crypto Row Hash').item.json.ticket_id }} closed",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "c459037c-5114-40a5-a084-763bf14e98a9",
+      "name": "Notify Closed",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1376,
+        480
+      ],
+      "webhookId": "00be2d74-e50c-447c-8d9b-43470bf35d96",
+      "credentials": {
+        "telegramApi": {
+          "id": "x5drj3yBOaYFnyrG",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Telegram Trigger": [
+      {
+        "json": {
+          "update_id": 224705733,
+          "message": {
+            "message_id": 49,
+            "from": {
+              "id": 7740914464,
+              "is_bot": false,
+              "first_name": "Dark Angel",
+              "username": "Sangamithra34",
+              "language_code": "en"
+            },
+            "chat": {
+              "id": 7740914464,
+              "first_name": "Dark Angel",
+              "username": "Sangamithra34",
+              "type": "private"
+            },
+            "date": 1791956979,
+            "text": "/incident randsomware attack on db",
+            "entities": [
+              {
+                "offset": 0,
+                "length": 9,
+                "type": "bot_command"
+              }
+            ]
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract Ticket ID",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Help",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Description Empty?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Description Empty?": {
+      "main": [
+        [
+          {
+            "node": "Reply Incident Usage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Get many rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows": {
+      "main": [
+        [
+          {
+            "node": "Build Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Ticket": {
+      "main": [
+        [
+          {
+            "node": "Insert Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Ticket": {
+      "main": [
+        [
+          {
+            "node": "Incident Audit Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Incident Audit Payload": {
+      "main": [
+        [
+          {
+            "node": "Crypto Input Hash",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crypto Input Hash": {
+      "main": [
+        [
+          {
+            "node": "Crypto Output Hash",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Ticket ID": {
+      "main": [
+        [
+          {
+            "node": "Ticket ID Missing?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ticket ID Missing?": {
+      "main": [
+        [
+          {
+            "node": "Reply Close Usage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Ticket Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Ticket Row": {
+      "main": [
+        [
+          {
+            "node": "Ticket Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ticket Found?": {
+      "main": [
+        [
+          {
+            "node": "Close Ticket Row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reply Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Close Ticket Row": {
+      "main": [
+        [
+          {
+            "node": "Close Audit Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Close Audit Payload": {
+      "main": [
+        [
+          {
+            "node": "Crypto Input Hash",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crypto Output Hash": {
+      "main": [
+        [
+          {
+            "node": "Get Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Audit Log": {
+      "main": [
+        [
+          {
+            "node": "Find Prev Hash",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Prev Hash": {
+      "main": [
+        [
+          {
+            "node": "Build Chain Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Chain Input": {
+      "main": [
+        [
+          {
+            "node": "Crypto Row Hash",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crypto Row Hash": {
+      "main": [
+        [
+          {
+            "node": "Insert Audit Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Audit Row": {
+      "main": [
+        [
+          {
+            "node": "Route By Severity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route By Severity": {
+      "main": [
+        [
+          {
+            "node": "Notify Red",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Orange",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Green",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Closed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Help": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "de4c8a73-3389-479d-bf13-48507848ab0d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7e03c43795d38834bcc8c902117560b62e908946ceeca4df3c3fe240c951633b"
+  },
+  "nodeGroups": [
+    {
+      "id": "678c6956-7d5c-4b72-93a8-9c1946fba94f",
+      "name": "Triage incident",
+      "nodeIds": [
+        "c4e63486-c667-42da-b7d3-9573cc49489c",
+        "0a904e7b-a27b-44c2-ae7f-25e9ace37fc6",
+        "7edf5f85-7ae4-485f-80b7-5ce60ed2e2d6",
+        "f8a43061-abae-44b9-84b2-04093787ef88",
+        "5ab1cdb8-e9c6-40d6-b99a-dee3366ac95b",
+        "d6e9de0c-ada3-4dca-bbbe-d089c524bc32",
+        "5ce4bf3e-31ff-4c13-83dc-49d058193c7d",
+        "23af734c-45b5-43e4-b12b-9d52cb880a2f",
+        "5ebcb8ba-7fba-4425-a8f9-f7d9af311f32",
+        "78d6fe9a-c83c-49d1-b743-0277fa64bef0"
+      ],
+      "description": "Takes the /incident text, has the AI classify it, numbers the ticket and saves it to the tickets table"
+    },
+    {
+      "id": "8267b09f-9a30-408c-a0e6-3d0bd7cf104d",
+      "name": "Close ticket",
+      "nodeIds": [
+        "3232be7d-6000-4d70-94d4-64d2d531b308",
+        "3175ed16-3789-4c8c-933a-4d50de669a2a",
+        "d57e1239-d942-4ad0-ab84-70fdf1ec3f04",
+        "d5f12cb2-0c76-4201-9f1a-d1ad395d1f46",
+        "aead27e9-35e2-4d2a-a19b-82b1104dc5a4",
+        "a6e6da3b-c48e-4990-8487-970e3491d8e4",
+        "ceb75249-71fc-4bf2-aba8-cbeb03beea0a",
+        "0add91b2-db06-4c2d-b18f-a5e5141008f0"
+      ],
+      "description": "Takes the /close ID, checks it exists, marks the ticket CLOSED, or replies with a usage or not-found error"
+    },
+    {
+      "id": "780fc953-1484-48b6-a54b-3ed4b42df737",
+      "name": "Record audit trail",
+      "nodeIds": [
+        "e90d85b8-31d0-49b0-a071-2fee2e9266db",
+        "f083ff62-ce06-4fab-98ec-0a9484028110",
+        "64153a4e-2ffc-47ee-a51f-1b1ed50fb041",
+        "962f2ef9-8601-4a86-9ee3-f8561b28cd31",
+        "164fad3a-c1da-4317-b46a-9f7f1d8799df",
+        "d8b290cc-0c7f-41be-a10c-198e3c38dfe5",
+        "d6708644-f364-4e92-9412-14836dfbf60f"
+      ],
+      "description": "Hashes input and output, links to the previous entry and stores a tamper-evident audit row"
+    },
+    {
+      "id": "97e1347e-b7e0-4da5-8167-067765bbcd58",
+      "name": "Notify reporter",
+      "nodeIds": [
+        "e3276983-8653-410f-909f-cfc3aa337f19",
+        "e6415437-ac2f-466e-9c72-639d492f0ec1",
+        "2ed196ce-f594-4d9f-ab0f-46de75b4bb56",
+        "ee7469b1-87f1-4195-9244-18912330a828",
+        "c459037c-5114-40a5-a084-763bf14e98a9"
+      ],
+      "description": "Sends the Telegram reply styled by severity, or the closure confirmation"
+    }
+  ],
+  "id": "I2SdSTMrgVyiqdZ8",
+  "tags": []
+}
