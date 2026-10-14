@@ -15,8 +15,7 @@ Anything else
 Sends a help message.
 
 
-**WORKFLOW OVERVIEW:
-**
+**WORKFLOW OVERVIEW:**
 Telegram Trigger -> Switch (command router)
   /incident -> Triage incident -> Record audit trail -> Notify reporter
   /close    -> Close ticket    -> Record audit trail -> Notify reporter
